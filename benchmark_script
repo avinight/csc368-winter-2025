@@ -1,0 +1,122 @@
+#!/bin/bash
+set -euo pipefail
+
+###############################
+# Check and Retrieve Arguments
+###############################
+
+if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 <cpu_configuration> <cachesweep>"
+    exit 1
+fi
+
+CPU_CONFIG="$1"
+CACHE_SWEEP="$2"
+
+###############################
+# Configuration Variables
+###############################
+
+# Number of parallel jobs
+MAX_JOBS=4
+
+# Root directory for all benchmark results
+RESULTS_DIR="benchmark_results"
+
+# Gem5 configuration command
+GEM5_CMD="/u/csc368h/winter/pub/bin/gem5.opt"
+
+# Benchmark configurations (name:command pairs)
+# Each command contains the token "input_file" that will be removed (because we pipe the input instead).
+BENCHMARKS=(
+  "sort:/u/csc368h/winter/pub/workloads/pbbsbench/benchmarks/comparisonSort/sampleSort/sort input_file"
+  "bfs:/u/csc368h/winter/pub/workloads/pbbsbench/benchmarks/breadthFirstSearch/backForwardBFS/BFS input_file"
+  "hist:/u/csc368h/winter/pub/workloads/pbbsbench/benchmarks/histogram/sequential/histogram input_file"
+  "msf:/u/csc368h/winter/pub/workloads/pbbsbench/benchmarks/minSpanningForest/serialMST/MST input_file"
+)
+
+# Input sizes (10, 20, ..., 100)
+INPUT_SIZES=($(seq 10 10 100))
+
+###############################
+# Phase 1: Input File Generation
+###############################
+
+# generate_input: For a given benchmark name and input size, generate the input file (without extension)
+# and store it in RESULTS_DIR/data/<benchmark>/<input_size>/.
+generate_input() {
+  local bench_name=$1
+  local input_size=$2
+  local data_dir="$RESULTS_DIR/data/$bench_name/$input_size"
+  mkdir -p "$data_dir"
+  local input_file="$data_dir/input_${bench_name}_${input_size}"
+
+  if [[ "$bench_name" == "sort" || "$bench_name" == "hist" ]]; then
+    # Generate sequence data (adjust arguments as needed)
+    /u/csc368h/winter/pub/workloads/pbbsbench/testData/sequenceData/randomSeq "$input_size" "$input_file"
+  elif [[ "$bench_name" == "bfs" ]]; then
+    # Generate graph data using gridGraph for bfs
+    /u/csc368h/winter/pub/workloads/pbbsbench/testData/graphData/gridGraph "$input_size" "$input_file"
+  elif [[ "$bench_name" == "msf" ]]; then
+    # Generate graph data using the expected usage: n <outFile>
+    /u/csc368h/winter/pub/workloads/pbbsbench/testData/graphData/randLocalGraph "$input_size" "$input_file"
+  else
+    echo "Unknown benchmark: $bench_name" >&2
+    exit 1
+  fi
+
+  echo "$input_file"
+}
+
+echo "Generating all input files..."
+for bench_entry in "${BENCHMARKS[@]}"; do
+  bench_name=$(echo "$bench_entry" | cut -d':' -f1)
+  for input_size in "${INPUT_SIZES[@]}"; do
+    generate_input "$bench_name" "$input_size"
+  done
+done
+echo "Input file generation complete."
+
+###############################
+# Phase 2: Run Benchmarks (Piping Inputs)
+###############################
+
+# run_benchmark: For a given benchmark configuration, iterate over each input size,
+# retrieve the corresponding input file, and pipe its contents into the gem5 command.
+run_benchmark() {
+  local bench_entry=$1
+  local bench_name
+  bench_name=$(echo "$bench_entry" | cut -d':' -f1)
+  local bench_cmd_template
+  bench_cmd_template=$(echo "$bench_entry" | cut -d':' -f2-)
+  
+  # Remove the "input_file" token from the command since we'll pipe the input.
+  local bench_cmd=${bench_cmd_template//input_file/}
+
+  for input_size in "${INPUT_SIZES[@]}"; do
+    local input_file="$RESULTS_DIR/data/$bench_name/$input_size/input_${bench_name}_${input_size}"
+    local outdir="$RESULTS_DIR/${bench_name}/${CPU_CONFIG}/${CACHE_SWEEP}/m5out${input_size}"
+    mkdir -p "$outdir"
+    
+    echo "Running $bench_name, input size: $input_size, CPU: $CPU_CONFIG, cachesweep: $CACHE_SWEEP"
+    echo "Command: $GEM5_CMD --outdir=$outdir e3.py $bench_cmd -a $input_file"
+    
+    # Run the gem5 command with the input file as an argument.
+    $GEM5_CMD --outdir=$outdir e3.py $bench_cmd -a "$input_file" > "${outdir}/sim.log" 2>&1 &
+  done
+  wait
+}
+
+echo "Running benchmarks..."
+for bench_entry in "${BENCHMARKS[@]}"; do
+  run_benchmark "$bench_entry" &
+  # Limit the number of parallel jobs
+  if [[ $(jobs -r -p | wc -l) -ge $MAX_JOBS ]]; then
+    wait -n
+  fi
+done
+wait
+
+echo "All benchmarks completed. Results are stored under the '$RESULTS_DIR' folder."
+echo "For example, simulation logs are located in:"
+echo "  $RESULTS_DIR/<benchmark>/${CPU_CONFIG}/${CACHE_SWEEP}/m5out<inputsize>/sim.log"
