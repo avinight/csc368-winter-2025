@@ -1,0 +1,31 @@
+Global frequency set at 1000000000000 ticks per second
+warn: No dot file generated. Please install pydot to generate the dot file and pdf.
+src/base/statistics.hh:279: warn: One of the stats is a legacy stat. Legacy stat is a stat that does not belong to any statistics::Group. Legacy stat is deprecated.
+src/base/remote_gdb.cc:418: warn: Sockets disabled, not accepting gdb connections
+gem5 Simulator System.  https://www.gem5.org
+gem5 is copyrighted software; use the --copyright option for details.
+
+gem5 version 24.0.0.0
+gem5 compiled Jul 15 2024 19:38:57
+gem5 started Feb 11 2025 21:21:00
+gem5 executing on wolf, pid 59382
+command line: /u/csc368h/winter/pub/bin/gem5.opt --outdir=benchmark_results/msf/O3CPU/L1I=4kB_L1D=4kB/ass32/m5out30 O3CPU4kb32.py /u/csc368h/winter/pub/workloads/pbbsbench/benchmarks/minSpanningForest/serialMST/MST -a benchmark_results/data/msf/30/input_msf_30
+
+info: Standard input is not a terminal, disabling listeners.
+src/sim/simulate.cc:199: info: Entering event queue @ 0.  Starting simulation...
+src/sim/mem_state.cc:448: info: Increasing stack size by one page.
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall set_robust_list(...)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall rseq(...)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+src/sim/syscall_emul.cc:74: warn: ignoring syscall mprotect(...)
+build/X86/arch/x86/generated/exec-ns.cc.inc:27: warn: instruction 'prefetch_nta' unimplemented
+build/X86/arch/x86/generated/exec-ns.cc.inc:27: warn: instruction 'prefetch_nta' unimplemented
+Bad input file
+src/sim/syscall_emul.cc:85: warn: ignoring syscall rt_sigprocmask(...)
+      (further warnings will be suppressed)
