@@ -1,0 +1,36 @@
+#!/bin/bash
+set -euo pipefail
+
+CPUS=("X86MinorCPU" "O3CPU")
+CACHESIZES=("4kb" "8kb" "16kb" "32kb")
+FIXED_ASSOC=2
+
+FIXED_CACHE="4kb"
+ASSOCIATIVITIES=("1" "2" "4" "8")
+
+# -------------------------------
+# Run cachesize sweep for each CPU.
+# -------------------------------
+for cpu in "${CPUS[@]}"; do
+    for cache in "${CACHESIZES[@]}"; do
+        cache_up="${cache/kb/kB}"
+        pyfile="${cpu}${cache}${FIXED_ASSOC}.py"
+        cachesweep="L1I=${cache_up}_L1D=${cache_up}"
+        
+        echo "Running: ./benchmark_script ${pyfile} ${cpu} ${cachesweep} ${FIXED_ASSOC}"
+        ./benchmark_script "${pyfile}" "${cpu}" "${cachesweep}" "${FIXED_ASSOC}"
+    done
+done
+
+# -------------------------------
+# Run associativity sweep for each CPU.
+# -------------------------------
+for cpu in "${CPUS[@]}"; do
+    for assoc in "${ASSOCIATIVITIES[@]}"; do
+        pyfile="${cpu}${FIXED_CACHE}${assoc}.py"
+        cachesweep="L1I=4kB_L1D=4kB"
+        
+        echo "Running: ./benchmark_script ${pyfile} ${cpu} ${cachesweep} ${assoc}"
+        ./benchmark_script "${pyfile}" "${cpu}" "${cachesweep}" "${assoc}"
+    done
+done
